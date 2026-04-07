@@ -1,0 +1,14 @@
+.codex/
+.idea/
+
+*.pcap
+*.pcapng
+
+/.cache/
+/tmp/
+
+/zoneserver
+/cmd/zoneserver/zoneserver
+
+*.test
+*.out
