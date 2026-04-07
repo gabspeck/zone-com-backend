@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"zone.com/internal/conn"
+	"zone.com/internal/proto"
+	"zone.com/internal/wire"
 )
 
 // Room manages tables and players for the game server.
@@ -154,4 +156,28 @@ func (r *Room) NextGameID() uint32 {
 	r.nextGameID++
 	log.Printf("[room] NextGameID: allocated game ID %d", gid)
 	return gid
+}
+
+func (r *Room) BroadcastChatSwitch(p *Player) {
+	r.mu.RLock()
+	players := make([]*Player, 0, len(r.players))
+	for _, other := range r.players {
+		players = append(players, other)
+	}
+	r.mu.RUnlock()
+
+	data := proto.MarshalRoomChatSwitch(p.UserID, p.Chat)
+	for _, other := range players {
+		msg := wire.AppMessage{
+			Signature: proto.LobbySig,
+			Channel:   other.Channel,
+			Type:      proto.RoomMsgChatSwitch,
+			Data:      data,
+		}
+		log.Printf("[room] BroadcastChatSwitch: userID=%d chat=%v -> player %d channel=%d",
+			p.UserID, p.Chat, other.UserID, other.Channel)
+		if err := other.Conn.WriteAppMessages([]wire.AppMessage{msg}); err != nil {
+			log.Printf("[room] BroadcastChatSwitch: send to player %d FAILED: %v", other.UserID, err)
+		}
+	}
 }

@@ -128,6 +128,8 @@ func roomMsgName(t uint32) string {
 		return "GameMessage"
 	case proto.RoomMsgAccessed:
 		return "Accessed"
+	case proto.RoomMsgChatSwitch:
+		return "ChatSwitch"
 	case proto.RoomMsgSeatRequest:
 		return "SeatRequest"
 	case proto.RoomMsgSeatResponse:
@@ -176,12 +178,35 @@ func dispatchRoomMsg(rm *Room, p *Player, msg wire.AppMessage) error {
 		return handleSeatRequest(rm, p, msg)
 	case proto.RoomMsgGameMessage:
 		return handleGameMessage(rm, p, msg)
+	case proto.RoomMsgChatSwitch:
+		return handleChatSwitch(rm, p, msg)
 	case proto.RoomMsgPing:
 		return handlePing(p, msg)
 	default:
 		log.Printf("[router] player %d: unhandled room msg type=%d (%s) data=%s",
 			p.UserID, msg.Type, roomMsgName(msg.Type), hex.EncodeToString(msg.Data))
 	}
+	return nil
+}
+
+func handleChatSwitch(rm *Room, p *Player, msg wire.AppMessage) error {
+	if len(msg.Data) < 5 {
+		log.Printf("[chat] player %d: ChatSwitch too short (%d < 5)", p.UserID, len(msg.Data))
+		return nil
+	}
+
+	var sw proto.RoomChatSwitch
+	sw.Unmarshal(msg.Data)
+	log.Printf("[chat] player %d: ChatSwitch userID=%d chat=%v data=%s",
+		p.UserID, sw.UserID, sw.Chat, hex.EncodeToString(msg.Data))
+
+	if sw.UserID != p.UserID {
+		log.Printf("[chat] player %d: ChatSwitch userID mismatch (got %d), forcing authoritative userID %d",
+			p.UserID, sw.UserID, p.UserID)
+	}
+
+	p.Chat = sw.Chat
+	rm.BroadcastChatSwitch(p)
 	return nil
 }
 
@@ -335,14 +360,17 @@ func handleGameMessage(rm *Room, p *Player, msg wire.AppMessage) error {
 	case proto.CheckersMsgVoteNewGame:
 		return handleCheckersVoteNewGame(table, game, p, payload)
 	case proto.CheckersMsgEndLog:
-		log.Printf("[game] player %d: EndLog, relaying to opponent", p.UserID)
+		log.Printf("[game] player %d: EndLog received, suppressing relay", p.UserID)
 		if len(payload) >= proto.CheckersEndLogSize {
 			var el proto.CheckersEndLog
 			el.Unmarshal(payload)
 			log.Printf("[game] player %d: EndLog: reason=%d seatLosing=%d seatQuitting=%d",
 				p.UserID, el.Reason, el.SeatLosing, el.SeatQuitting)
 		}
-		table.BroadcastGameMsg(proto.CheckersMsgEndLog, payload, p.Seat)
+		// The original XP client uses EndLog as a local cleanup/failure path.
+		// Relaying it after a normal draw/resign completion causes the peer to
+		// show a corrupt/cannot-continue error even though EndGame already
+		// finalized the session.
 	default:
 		log.Printf("[game] player %d: UNHANDLED checkers msg 0x%x(%s) payload=%s",
 			p.UserID, gm.MessageType, checkersMsgName(gm.MessageType), hex.EncodeToString(payload))
@@ -541,9 +569,10 @@ func handleCheckersDraw(table *Table, game *checkers.Game, p *Player, payload []
 
 	game.HandleDraw(msg.Seat, msg.Vote)
 
-	log.Printf("[checkers] table %d: relaying Draw to opponent", table.ID)
-	// Relay to opponent
-	table.BroadcastGameMsg(proto.CheckersMsgDraw, payload, p.Seat)
+	log.Printf("[checkers] table %d: broadcasting Draw to both players", table.ID)
+	// The XP client expects both sides to process the draw message. On accept,
+	// seat 0 then emits the authoritative EndGame(DRAW) packet.
+	table.BroadcastGameMsg(proto.CheckersMsgDraw, payload, -1)
 	return nil
 }
 

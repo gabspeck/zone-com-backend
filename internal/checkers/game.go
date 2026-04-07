@@ -189,6 +189,11 @@ func (g *Game) HandleEndGame(seat int16, flags uint32) error {
 // HandleDraw processes a draw offer/response.
 func (g *Game) HandleDraw(seat, vote int16) {
 	log.Printf("[game] HandleDraw: seat=%d vote=%d drawOfferer=%d", seat, vote, g.DrawOfferer)
+	if vote == 0 { // Offer draw
+		g.DrawOfferer = seat
+		log.Printf("[game] HandleDraw: draw offered by seat %d", seat)
+		return
+	}
 	if vote == 1 { // AcceptDraw - handled elsewhere via EndGame
 		log.Printf("[game] HandleDraw: draw accepted (will be finalized via EndGame)")
 		return

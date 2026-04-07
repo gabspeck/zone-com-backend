@@ -16,6 +16,7 @@ const (
 	RoomLeaveSize        = 4  // userID(4)
 	RoomZUserIDRespSize  = 40
 	RoomServerStatusSize = 8
+	RoomChatSwitchSize   = 8 // userID(4)+fChat(1)+pad(3)
 )
 
 // RoomUserInfo is the client check-in message.
@@ -136,6 +137,25 @@ func MarshalRoomServerStatus(status, playersWaiting uint32) []byte {
 	b := make([]byte, RoomServerStatusSize)
 	wire.WriteLE32(b[0:], status)
 	wire.WriteLE32(b[4:], playersWaiting)
+	return b
+}
+
+type RoomChatSwitch struct {
+	UserID uint32
+	Chat   bool
+}
+
+func (m *RoomChatSwitch) Unmarshal(b []byte) {
+	m.UserID = wire.ReadLE32(b[0:])
+	m.Chat = len(b) > 4 && b[4] != 0
+}
+
+func MarshalRoomChatSwitch(userID uint32, chat bool) []byte {
+	b := make([]byte, RoomChatSwitchSize)
+	wire.WriteLE32(b[0:], userID)
+	if chat {
+		b[4] = 1
+	}
 	return b
 }
 

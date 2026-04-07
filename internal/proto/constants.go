@@ -107,6 +107,7 @@ const (
 	RoomMsgClientConfig    uint32 = 30
 	RoomMsgServerStatus    uint32 = 31
 	RoomMsgStartGameM      uint32 = 32
+	RoomMsgChatSwitch      uint32 = 33
 	RoomMsgPing            uint32 = 64
 )
 
