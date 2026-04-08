@@ -16,6 +16,7 @@ Currently supported game services:
 
 - Checkers: `mchkr_zm_***`
 - Reversi: `mrvse_zm_***`
+- Backgammon: `mbckg_zm_***`
 
 ## Project layout
 
@@ -27,6 +28,8 @@ Currently supported game services:
 - [`internal/room`](/home/gabriels/projetos/zone.com/internal/room): lobby/game routing, matchmaking, table management
 - [`internal/checkers`](/home/gabriels/projetos/zone.com/internal/checkers): server-side checkers rules and board state
 - [`internal/reversi`](/home/gabriels/projetos/zone.com/internal/reversi): server-side Reversi rules and state serialization
+- [`internal/backgammon`](/home/gabriels/projetos/zone.com/internal/backgammon): Backgammon shared state, dice encoding, piece positions
+- [`internal/integration`](/home/gabriels/projetos/zone.com/internal/integration): black-box socket-level integration tests
 - [`internal/server`](/home/gabriels/projetos/zone.com/internal/server): end-to-end connection flow
 
 ## Connection flow
@@ -73,16 +76,17 @@ Implemented:
 - room/game startup for supported game services
 - server-side validation of checkers moves
 - server-side validation and state sync for Reversi
+- Backgammon session with MSVC-aligned wire protocol (DICEINFO padding), server-side dice rolling, shared state management, and transaction relay
 - chat relay
 - proxy-based opponent disconnect handling
 - rematch handling for Reversi, including ready-state notifications
-- suppression of protocol paths that the XP clients treat as corruption (`EndLog` relay, legacy Reversi `FinishMove`)
+- suppression of protocol paths that the XP clients treat as corruption (`EndLog` relay, legacy Reversi `FinishMove`, Backgammon `NewMatch`/`TieRoll`/etc.)
 
 Current assumptions:
 
 - tables are auto-managed; there is no full Zone UI/lobby feature set
 - this is focused on the 2-player XP client path, not the broader Zone ecosystem
-- only the Checkers and Reversi Millennium services are implemented today
+- Checkers, Reversi, and Backgammon are implemented; other Millennium services are not
 
 ## Running
 
