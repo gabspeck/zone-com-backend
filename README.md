@@ -1,16 +1,21 @@
 # zone.com
 
-Experimental Go server for the Windows XP / Millennium Zone.com checkers client.
+Experimental Go server for the Windows XP / Millennium Zone.com game clients.
 
-The project implements enough of the original Zone/Millennium protocol stack for two legacy clients to:
+The project implements enough of the original Zone/Millennium protocol stack for legacy clients to:
 
 - connect through the encrypted Zone transport handshake
 - complete proxy negotiation
 - enter the lobby/game room flow
 - match against each other automatically
-- start a checkers game
-- exchange checkers game messages and chat
+- start a supported game session
+- exchange game messages and chat
 - handle opponent disconnects through the XP client's expected proxy disconnect flow
+
+Currently supported game services:
+
+- Checkers: `mchkr_zm_***`
+- Reversi: `mrvse_zm_***`
 
 ## Project layout
 
@@ -21,6 +26,7 @@ The project implements enough of the original Zone/Millennium protocol stack for
 - [`internal/proxy`](/home/gabriels/projetos/zone.com/internal/proxy): Millennium proxy negotiation
 - [`internal/room`](/home/gabriels/projetos/zone.com/internal/room): lobby/game routing, matchmaking, table management
 - [`internal/checkers`](/home/gabriels/projetos/zone.com/internal/checkers): server-side checkers rules and board state
+- [`internal/reversi`](/home/gabriels/projetos/zone.com/internal/reversi): server-side Reversi rules and state serialization
 - [`internal/server`](/home/gabriels/projetos/zone.com/internal/server): end-to-end connection flow
 
 ## Connection flow
@@ -36,21 +42,25 @@ Each client connection goes through these phases:
    - parses packed XP proxy startup messages
    - sends packed proxy responses expected by the Millennium client
    - confirms the requested service/channel
+   - resolves the requested service to a game definition
 
 3. Room bootstrap
    - reads `ClientConfig`
    - allocates a user
    - sends `ZUserIDResponse`
+   - sends room `Enter` notifications so clients can resolve opponent player info
    - sends `ServerStatus`
 
 4. Matchmaking
    - seats players automatically
-   - starts a table when two players are present
+   - groups players by requested game service
+   - starts a table when two players for the same game are present
    - sends `StartGameM`
 
 5. Game loop
    - routes `RoomMsgGameMessage`
-   - handles checkers startup, moves, turn completion, chat, draw/endgame traffic
+   - dispatches to the selected game session
+   - handles startup, moves, chat, endgame, rematch, and state-sync traffic
 
 ## Current behavior
 
@@ -60,16 +70,19 @@ Implemented:
 - packed proxy service info flow
 - connection keepalive and ping handling
 - automatic two-player matchmaking
-- room/game startup for checkers
+- room/game startup for supported game services
 - server-side validation of checkers moves
-- checkers chat relay
+- server-side validation and state sync for Reversi
+- chat relay
 - proxy-based opponent disconnect handling
+- rematch handling for Reversi, including ready-state notifications
+- suppression of protocol paths that the XP clients treat as corruption (`EndLog` relay, legacy Reversi `FinishMove`)
 
 Current assumptions:
 
-- only one game service is supported: the checkers Millennium service
 - tables are auto-managed; there is no full Zone UI/lobby feature set
 - this is focused on the 2-player XP client path, not the broader Zone ecosystem
+- only the Checkers and Reversi Millennium services are implemented today
 
 ## Running
 
