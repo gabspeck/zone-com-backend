@@ -296,3 +296,55 @@ const (
 	HeartsStatePlayCards int16 = 2
 	HeartsStateEndGame   int16 = 3
 )
+
+// Spades protocol
+const (
+	SpadesSig     uint32 = 0x7368766C // 'shvl'
+	SpadesVersion uint32 = 4
+)
+
+// Spades message types (inside RoomMsgGameMessage)
+const (
+	SpadesMsgClientReady        uint32 = 0x100
+	SpadesMsgStartGame          uint32 = 0x101
+	SpadesMsgReplacePlayer      uint32 = 0x102
+	SpadesMsgStartBid           uint32 = 0x103
+	SpadesMsgStartPass          uint32 = 0x104 // disabled in XP
+	SpadesMsgStartPlay          uint32 = 0x105
+	SpadesMsgEndHand            uint32 = 0x106
+	SpadesMsgEndGame            uint32 = 0x107
+	SpadesMsgBid                uint32 = 0x108
+	SpadesMsgPass               uint32 = 0x109 // disabled in XP
+	SpadesMsgPlay               uint32 = 0x10A
+	SpadesMsgNewGame            uint32 = 0x10B
+	SpadesMsgTalk               uint32 = 0x10C
+	SpadesMsgGameStateReq       uint32 = 0x10D
+	SpadesMsgGameStateResp      uint32 = 0x10E
+	SpadesMsgOptions            uint32 = 0x10F
+	SpadesMsgCheckIn            uint32 = 0x110
+	SpadesMsgTeamName           uint32 = 0x111
+	SpadesMsgRemovePlayerReq    uint32 = 0x112
+	SpadesMsgRemovePlayerResp   uint32 = 0x113
+	SpadesMsgRemovePlayerEnd    uint32 = 0x114
+	SpadesMsgDossierData        uint32 = 0x115
+	SpadesMsgDossierVote        uint32 = 0x116
+	SpadesMsgShownCards         uint32 = 0x117
+	SpadesMsgDumpHand           uint32 = 0x400
+)
+
+// Spades constants
+const (
+	SpadesNumPlayers     = 4
+	SpadesNumTeams       = 2
+	SpadesNumCardsInHand = 13
+)
+
+// Spades server states
+const (
+	SpadesStateNone    int16 = 0
+	SpadesStateBidding int16 = 1
+	SpadesStatePlaying int16 = 3
+	SpadesStateEndHand int16 = 4
+	SpadesStateEndGame int16 = 5
+)
+

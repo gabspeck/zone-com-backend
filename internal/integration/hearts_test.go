@@ -1,54 +1,14 @@
 package integration
 
 import (
-	"sync"
 	"testing"
 
 	"zone.com/internal/proto"
 	"zone.com/internal/wire"
 )
 
-// connectFourHeartsClients connects 4 clients through the full bootstrap
-// and reads their StartGameM. Returns clients with seat/gameID populated.
 func connectFourHeartsClients(t *testing.T, addr string) [4]*testClient {
-	t.Helper()
-
-	var clients [4]*testClient
-	for i := range clients {
-		clients[i] = &testClient{t: t}
-		t.Cleanup(clients[i].close)
-	}
-
-	// Connect each client sequentially (handshake + proxy + config)
-	for i := range clients {
-		clients[i].connect(addr)
-		clients[i].handshake()
-		clients[i].proxyNegotiate("mhrtz_zm_***")
-		clients[i].sendClientConfig()
-	}
-
-	// Read bootstrap responses in parallel (StartGameM only after all 4 seated)
-	var wg sync.WaitGroup
-	wg.Add(4)
-	for i := range clients {
-		i := i
-		go func() {
-			defer wg.Done()
-			clients[i].readBootstrapResponses()
-		}()
-	}
-	wg.Wait()
-
-	// Verify all got unique seats
-	seatsSeen := make(map[int16]bool)
-	for i, c := range clients {
-		t.Logf("client %d: userID=%d seat=%d gameID=%d", i, c.userID, c.seat, c.gameID)
-		if seatsSeen[c.seat] {
-			t.Fatalf("duplicate seat %d", c.seat)
-		}
-		seatsSeen[c.seat] = true
-	}
-	return clients
+	return connectFourClients(t, addr, "mhrtz_zm_***")
 }
 
 // sendHeartsClientReady sends the ClientReady message from a client.

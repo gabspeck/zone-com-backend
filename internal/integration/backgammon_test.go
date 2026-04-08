@@ -320,6 +320,55 @@ func startServer(t *testing.T) (string, context.CancelFunc) {
 	return addr, cancel
 }
 
+// connectFourClients connects 4 clients through the full bootstrap for a given service.
+func connectFourClients(t *testing.T, addr, service string) [4]*testClient {
+	t.Helper()
+
+	var clients [4]*testClient
+	for i := range clients {
+		clients[i] = &testClient{t: t}
+		t.Cleanup(clients[i].close)
+	}
+
+	for i := range clients {
+		clients[i].connect(addr)
+		clients[i].handshake()
+		clients[i].proxyNegotiate(service)
+		clients[i].sendClientConfig()
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(4)
+	for i := range clients {
+		i := i
+		go func() {
+			defer wg.Done()
+			clients[i].readBootstrapResponses()
+		}()
+	}
+	wg.Wait()
+
+	seatsSeen := make(map[int16]bool)
+	for i, c := range clients {
+		t.Logf("client %d: userID=%d seat=%d gameID=%d", i, c.userID, c.seat, c.gameID)
+		if seatsSeen[c.seat] {
+			t.Fatalf("duplicate seat %d", c.seat)
+		}
+		seatsSeen[c.seat] = true
+	}
+	return clients
+}
+
+// clientBySeat returns the client sitting at the given seat.
+func clientBySeat(clients [4]*testClient, seat int16) *testClient {
+	for _, c := range clients {
+		if c.seat == seat {
+			return c
+		}
+	}
+	return nil
+}
+
 func connectTwoClients(t *testing.T, addr string) (*testClient, *testClient) {
 	t.Helper()
 

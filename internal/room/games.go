@@ -9,6 +9,7 @@ const (
 	GameKindReversi    GameKind = "reversi"
 	GameKindBackgammon GameKind = "backgammon"
 	GameKindHearts     GameKind = "hearts"
+	GameKindSpades     GameKind = "spades"
 )
 
 type GameSession interface {
@@ -52,6 +53,13 @@ var gameRegistry = map[string]*GameDefinition{
 		Service:    "mhrtz_zm_***",
 		Seats:      4,
 		NewSession: newHeartsSession,
+	},
+	"mshvl_zm_***": {
+		Kind:       GameKindSpades,
+		Name:       "Spades",
+		Service:    "mshvl_zm_***",
+		Seats:      4,
+		NewSession: newSpadesSession,
 	},
 }
 
