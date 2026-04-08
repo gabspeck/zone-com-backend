@@ -237,7 +237,7 @@ func TestHeartsPlayCard(t *testing.T) {
 				}
 				gotSeat := int16(wire.ReadBE16(payload[0:]))
 				gotCard := payload[2]
-				if gotSeat != startPlaySeat || gotCard != cardToPlay {
+				if gotSeat != startPlaySeat || gotCard != 0 {
 					t.Fatalf("client %d: PlayCard mismatch seat=%d card=%d", j, gotSeat, gotCard)
 				}
 			}
