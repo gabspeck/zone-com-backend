@@ -1,6 +1,7 @@
 package room
 
 import (
+	"encoding/hex"
 	"log"
 	"sync"
 
@@ -67,6 +68,47 @@ func (r *Room) AddPlayer(c *conn.Conn, userName string, channel uint32, lcid uin
 	return p
 }
 
+func (r *Room) BroadcastEnter(newPlayer *Player) {
+	r.mu.RLock()
+	players := make([]*Player, 0, len(r.players))
+	for _, p := range r.players {
+		players = append(players, p)
+	}
+	r.mu.RUnlock()
+
+	newPlayerEnter := proto.MarshalRoomEnter(newPlayer.UserID, newPlayer.UserName)
+	for _, other := range players {
+		if other.UserID == newPlayer.UserID {
+			continue
+		}
+
+		otherEnter := proto.MarshalRoomEnter(other.UserID, other.UserName)
+		log.Printf("[room] BroadcastEnter: sending existing player %d to new player %d data=%s",
+			other.UserID, newPlayer.UserID, hex.EncodeToString(otherEnter))
+		if err := newPlayer.Conn.WriteAppMessages([]wire.AppMessage{{
+			Signature: proto.LobbySig,
+			Channel:   newPlayer.Channel,
+			Type:      proto.RoomMsgEnter,
+			Data:      otherEnter,
+		}}); err != nil {
+			log.Printf("[room] BroadcastEnter: send existing player %d to new player %d FAILED: %v",
+				other.UserID, newPlayer.UserID, err)
+		}
+
+		log.Printf("[room] BroadcastEnter: announcing new player %d to player %d data=%s",
+			newPlayer.UserID, other.UserID, hex.EncodeToString(newPlayerEnter))
+		if err := other.Conn.WriteAppMessages([]wire.AppMessage{{
+			Signature: proto.LobbySig,
+			Channel:   other.Channel,
+			Type:      proto.RoomMsgEnter,
+			Data:      newPlayerEnter,
+		}}); err != nil {
+			log.Printf("[room] BroadcastEnter: announce new player %d to player %d FAILED: %v",
+				newPlayer.UserID, other.UserID, err)
+		}
+	}
+}
+
 func (r *Room) WaitingPlayers() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -112,7 +154,7 @@ func (r *Room) FindSeat(p *Player) (*Table, int16) {
 	// First: find a table with exactly one player (matchmaking)
 	for _, t := range r.tables {
 		t.mu.Lock()
-		hasOne := (t.Seats[0] != nil) != (t.Seats[1] != nil)
+		hasOne := ((t.Seats[0] != nil) != (t.Seats[1] != nil)) && (t.Definition == nil || t.Definition == p.GameDef)
 		if hasOne {
 			var occ int16
 			if t.Seats[0] != nil {
@@ -138,6 +180,12 @@ func (r *Room) FindSeat(p *Player) (*Table, int16) {
 
 	// Second: find a completely empty table
 	for _, t := range r.tables {
+		t.mu.Lock()
+		matches := t.Definition == nil || t.Definition == p.GameDef
+		t.mu.Unlock()
+		if !matches {
+			continue
+		}
 		if t.SitDown(p, 0) {
 			log.Printf("[room] FindSeat: seated player %d at empty table %d seat 0", p.UserID, t.ID)
 			return t, 0

@@ -16,7 +16,7 @@ import (
 	"zone.com/internal/wire"
 )
 
-// Server is the Zone.com checkers game server.
+// Server is the Zone.com game server.
 type Server struct {
 	room     *room.Room
 	port     int
@@ -89,6 +89,11 @@ func (s *Server) handleConn(raw net.Conn) {
 		return
 	}
 	log.Printf("[server] %s: phase 2 complete - service=%q channel=%d", addr, service, channel)
+	gameDef, err := room.ResolveGameDefinition(service)
+	if err != nil {
+		log.Printf("[server] %s: unsupported service: %v", addr, err)
+		return
+	}
 
 	log.Printf("[server] %s: phase 3 - room bootstrap (reading ClientConfig)", addr)
 	clientCfg, err := readClientConfig(c, addr.String())
@@ -99,6 +104,7 @@ func (s *Server) handleConn(raw net.Conn) {
 	lcid, chat, skill := parseClientConfig(clientCfg)
 	player := s.room.AddPlayer(c, fmt.Sprintf("Player %s", addr.String()), channel, lcid, chat, skill)
 	player.Service = service
+	player.GameDef = gameDef
 	log.Printf("[server] %s: player registered: userID=%d name=%q channel=%d lcid=%d chat=%v skill=%d",
 		addr, player.UserID, player.UserName, channel, lcid, chat, skill)
 
@@ -108,6 +114,8 @@ func (s *Server) handleConn(raw net.Conn) {
 		log.Printf("[server] player %d: send ZUserIDResponse FAILED: %v", player.UserID, err)
 		return
 	}
+
+	s.room.BroadcastEnter(player)
 
 	waiting := uint32(s.room.WaitingPlayers())
 	status := proto.MarshalRoomServerStatus(0, waiting)
@@ -130,23 +138,7 @@ func (s *Server) handleConn(raw net.Conn) {
 		gameID := s.room.NextGameID()
 		log.Printf("[server] table %d: both players seated, starting game %d", table.ID, gameID)
 		table.StartGame(gameID)
-
-		players := [2]proto.RoomStartGameMPlayer{
-			{UserID: table.Seats[0].UserID, LCID: table.Seats[0].LCID, Chat: table.Seats[0].Chat, Skill: table.Seats[0].Skill},
-			{UserID: table.Seats[1].UserID, LCID: table.Seats[1].LCID, Chat: table.Seats[1].Chat, Skill: table.Seats[1].Skill},
-		}
-		for s := int16(0); s < 2; s++ {
-			pl := table.Seats[s]
-			if pl == nil {
-				continue
-			}
-			startMsg := proto.MarshalRoomStartGameM(gameID, table.ID, s, players)
-			log.Printf("[server] player %d: sending StartGameM: gameID=%d table=%d seat=%d data=%s",
-				pl.UserID, gameID, table.ID, s, hex.EncodeToString(startMsg))
-			if err := pl.Conn.SendAppMessage(proto.LobbySig, pl.Channel, proto.RoomMsgStartGameM, startMsg); err != nil {
-				log.Printf("[server] player %d: send StartGameM FAILED: %v", pl.UserID, err)
-			}
-		}
+		room.SendStartGameMessages(table, gameID)
 		log.Printf("[server] game %d started on table %d", gameID, table.ID)
 	} else {
 		log.Printf("[server] player %d: waiting for opponent on table %d", player.UserID, table.ID)

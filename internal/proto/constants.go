@@ -12,6 +12,7 @@ const (
 	GameRoomSig    uint32 = 0x67616D65 // 'game'
 	LobbySig       uint32 = 0x6C626279 // 'lbby'
 	CheckersSig    uint32 = 0x43484B52 // 'CHKR'
+	ReversiSig     uint32 = 0x72767365 // 'rvse'
 	InternalAppSig uint32 = 0x7A737973 // 'zsys'
 )
 
@@ -27,6 +28,7 @@ const (
 	ProxyVersion    uint32 = 1
 	GameRoomVersion uint32 = 17
 	CheckersVersion uint32 = 2
+	ReversiVersion  uint32 = 3
 )
 
 // Ports
@@ -159,6 +161,21 @@ const (
 	CheckersMsgVoteNewGame   uint32 = 0x10B
 )
 
+// Reversi message types (inside RoomMsgGameMessage)
+const (
+	ReversiMsgNewGame       uint32 = 0x100
+	ReversiMsgMovePiece     uint32 = 0x101
+	ReversiMsgTalk          uint32 = 0x102
+	ReversiMsgEndGame       uint32 = 0x103
+	ReversiMsgEndLog        uint32 = 0x104
+	ReversiMsgFinishMove    uint32 = 0x105
+	ReversiMsgPlayers       uint32 = 0x106
+	ReversiMsgGameStateReq  uint32 = 0x107
+	ReversiMsgGameStateResp uint32 = 0x108
+	ReversiMsgMoveTimeout   uint32 = 0x109
+	ReversiMsgVoteNewGame   uint32 = 0x10A
+)
+
 // Draw vote values
 const (
 	AcceptDraw int16 = 1
@@ -186,4 +203,5 @@ const (
 const (
 	MaxPlayersPerTable = 8
 	NumCheckersPlayers = 2
+	NumReversiPlayers  = 2
 )

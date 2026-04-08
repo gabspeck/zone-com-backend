@@ -6,29 +6,37 @@ import (
 	"log"
 	"sync"
 
-	"zone.com/internal/checkers"
 	"zone.com/internal/proto"
 	"zone.com/internal/wire"
 )
 
 // Table represents a game table with 2 seats.
 type Table struct {
-	mu     sync.Mutex
-	ID     int16
-	Seats  [2]*Player
-	GameID uint32
-	Game   *checkers.Game
-	Status int16 // 0=idle, 1=gaming
+	mu         sync.Mutex
+	ID         int16
+	Seats      [2]*Player
+	GameID     uint32
+	Definition *GameDefinition
+	Session    GameSession
+	Status     int16 // 0=idle, 1=gaming
 }
 
 // SitDown seats a player at the table.
 func (t *Table) SitDown(p *Player, seat int16) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	if t.Definition != nil && p.GameDef != t.Definition {
+		log.Printf("[table] table %d: SitDown REJECTED for player %d due to game mismatch (%v != %v)",
+			t.ID, p.UserID, gameKindName(p.GameDef), gameKindName(t.Definition))
+		return false
+	}
 	if t.Seats[seat] != nil {
 		log.Printf("[table] table %d: SitDown REJECTED for player %d at seat %d (occupied by %d)",
 			t.ID, p.UserID, seat, t.Seats[seat].UserID)
 		return false
+	}
+	if t.Definition == nil {
+		t.Definition = p.GameDef
 	}
 	t.Seats[seat] = p
 	p.Table = t
@@ -58,8 +66,9 @@ func (t *Table) RemovePlayer(p *Player) {
 	if t.Seats[0] == nil && t.Seats[1] == nil {
 		log.Printf("[table] table %d: now empty, resetting to idle (was gameID=%d)", t.ID, t.GameID)
 		t.Status = 0
-		t.Game = nil
+		t.Session = nil
 		t.GameID = 0
+		t.Definition = nil
 	}
 	log.Printf("[table] table %d: seats now: [%s, %s]", t.ID, seatInfo(t.Seats[0]), seatInfo(t.Seats[1]))
 }
@@ -91,10 +100,11 @@ func (t *Table) StartGame(gameID uint32) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.GameID = gameID
-	t.Game = checkers.NewGame()
-	t.Game.State = checkers.StateWaitingForPlayers
+	if t.Definition != nil {
+		t.Session = t.Definition.NewSession()
+	}
 	t.Status = 1
-	log.Printf("[table] table %d: game %d initialized (state=WaitingForPlayers)", t.ID, gameID)
+	log.Printf("[table] table %d: game %d initialized (%s)", t.ID, gameID, gameKindName(t.Definition))
 }
 
 // BroadcastGameMsg sends a game message wrapped in RoomGameMessage to all players at the table.
@@ -131,6 +141,13 @@ func (t *Table) BroadcastGameMsg(msgType uint32, payload []byte, excludeSeat int
 			log.Printf("[broadcast] table %d: send to seat %d (player %d) FAILED: %v", t.ID, i, p.UserID, err)
 		}
 	}
+}
+
+func gameKindName(def *GameDefinition) string {
+	if def == nil {
+		return "<none>"
+	}
+	return string(def.Kind)
 }
 
 // SendToSeat sends a game message to a specific seat.

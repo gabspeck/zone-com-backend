@@ -9,6 +9,7 @@ type Player struct {
 	UserID   uint32
 	UserName string
 	Service  string
+	GameDef  *GameDefinition
 	Conn     *conn.Conn
 	Table    *Table
 	Seat     int16

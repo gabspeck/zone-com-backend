@@ -7,6 +7,7 @@ const (
 	RoomUserInfoSize     = 72 // sig(4)+ver(4)+clientVer(4)+internalName(32)+userName(32)
 	RoomClientConfigSize = 264
 	RoomAccessedSize     = 24 // userID(4)+numTables(2)+numSeats(2)+gameOpts(4)+groupID(4)+privs(4) [protocol 17]
+	RoomEnterSize        = 56 // userID(4)+userName(32)+hostAddr(4)+timeSuspended(4)+latency(4)+rating(2)+gamesPlayed(2)+gamesAbandoned(2)+rfu(2)
 	RoomSeatRequestSize  = 12 // userID(4)+table(2)+seat(2)+action(2)+rfu(2)
 	RoomSeatResponseSize = 16 // userID(4)+gameID(4)+table(2)+seat(2)+action(2)+rfu(2)
 	RoomStartGameSize    = 8  // gameID(4)+table(2)+seat(2)
@@ -58,6 +59,20 @@ func MarshalRoomAccessed(userID uint32, numTables, numSeats uint16, gameOptions,
 	wire.WriteLE32(b[12:], groupID)
 	wire.WriteLE32(b[16:], privs) // protocol 17: maskRoomCmdPrivs
 	// 4 bytes padding at 20 to reach 24 -- actually no, sizeof is 24 with the 6 fields
+	return b
+}
+
+func MarshalRoomEnter(userID uint32, userName string) []byte {
+	b := make([]byte, RoomEnterSize)
+	wire.WriteLE32(b[0:], userID)
+	copy(b[4:36], append([]byte(userName), 0))
+	wire.WriteLE32(b[36:], 0) // hostAddr
+	wire.WriteLE32(b[40:], 0) // timeSuspended
+	wire.WriteLE32(b[44:], 0) // latency
+	wire.WriteLE16(b[48:], uint16(0xffff))
+	wire.WriteLE16(b[50:], uint16(0xffff))
+	wire.WriteLE16(b[52:], uint16(0xffff))
+	wire.WriteLE16(b[54:], 0)
 	return b
 }
 

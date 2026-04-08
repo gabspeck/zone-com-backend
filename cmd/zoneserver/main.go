@@ -17,7 +17,7 @@ func main() {
 
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 	log.Printf("========================================")
-	log.Printf("Zone.com Checkers Server starting")
+	log.Printf("Zone.com Game Server starting")
 	log.Printf("  port:   %d", *port)
 	log.Printf("  tables: %d", *tables)
 	log.Printf("  seats:  2 per table")
