@@ -236,4 +236,63 @@ const (
 	NumCheckersPlayers   = 2
 	NumReversiPlayers    = 2
 	NumBackgammonPlayers = 2
+	NumHeartsPlayers     = 4
+)
+
+// Hearts protocol
+const (
+	HeartsSig     uint32 = 0x6872747A // 'hrtz'
+	HeartsVersion uint32 = 5
+)
+
+// Hearts message types (inside RoomMsgGameMessage)
+const (
+	HeartsMsgStartGame       uint32 = 0x100
+	HeartsMsgReplacePlayer   uint32 = 0x101
+	HeartsMsgStartHand       uint32 = 0x102
+	HeartsMsgStartPlay       uint32 = 0x103
+	HeartsMsgEndHand         uint32 = 0x104
+	HeartsMsgEndGame         uint32 = 0x105
+	HeartsMsgClientReady     uint32 = 0x106
+	HeartsMsgPassCards       uint32 = 0x107
+	HeartsMsgPlayCard        uint32 = 0x108
+	HeartsMsgNewGame         uint32 = 0x109
+	HeartsMsgTalk            uint32 = 0x10A
+	HeartsMsgGameStateReq    uint32 = 0x10B
+	HeartsMsgGameStateResp   uint32 = 0x10C
+	HeartsMsgDumpHand        uint32 = 0x10D
+	HeartsMsgOptions         uint32 = 0x10E
+	HeartsMsgCheckIn         uint32 = 0x10F
+	HeartsMsgRemovePlayerReq uint32 = 0x110
+	HeartsMsgRemovePlayerRes uint32 = 0x111
+	HeartsMsgDossierData     uint32 = 0x112
+	HeartsMsgDossierVote     uint32 = 0x113
+	HeartsMsgCloseRequest    uint32 = 0x114
+	HeartsMsgCloseDenied     uint32 = 0x115
+)
+
+// Hearts constants
+const (
+	HeartsMaxNumPlayers     = 6
+	HeartsMaxNumCardsInHand = 18
+	HeartsMaxNumCardsInPass = 5
+	HeartsNumCardsInDeck    = 52
+	HeartsNumPointsInGame   = 100
+	HeartsCardNone          = 127
+)
+
+// Hearts pass directions
+const (
+	HeartsPassHold   int16 = 0
+	HeartsPassLeft   int16 = 1
+	HeartsPassAcross int16 = 2
+	HeartsPassRight  int16 = 3
+)
+
+// Hearts server states
+const (
+	HeartsStateNone      int16 = 0
+	HeartsStatePassCards int16 = 1
+	HeartsStatePlayCards int16 = 2
+	HeartsStateEndGame   int16 = 3
 )

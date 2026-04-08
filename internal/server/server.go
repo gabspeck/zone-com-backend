@@ -26,7 +26,7 @@ type Server struct {
 // New creates a new server.
 func New(port, numTables int) *Server {
 	return &Server{
-		room: room.New(numTables, proto.NumCheckersPlayers),
+		room: room.New(numTables, proto.MaxPlayersPerTable),
 		port: port,
 	}
 }
@@ -134,9 +134,9 @@ func (s *Server) handleConn(raw net.Conn) {
 	}
 	log.Printf("[server] player %d: auto-seated at table %d seat %d", player.UserID, table.ID, seat)
 
-	if table.BothSeated() {
+	if table.AllSeated() {
 		gameID := s.room.NextGameID()
-		log.Printf("[server] table %d: both players seated, starting game %d", table.ID, gameID)
+		log.Printf("[server] table %d: all %d players seated, starting game %d", table.ID, len(table.Seats), gameID)
 		table.StartGame(gameID)
 		room.SendStartGameMessages(table, gameID)
 		log.Printf("[server] game %d started on table %d", gameID, table.ID)

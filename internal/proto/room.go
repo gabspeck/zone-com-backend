@@ -121,12 +121,13 @@ type RoomStartGameMPlayer struct {
 	Skill  int16
 }
 
-func MarshalRoomStartGameM(gameID uint32, table, seat int16, players [2]RoomStartGameMPlayer) []byte {
-	b := make([]byte, RoomStartGameMSize)
+func MarshalRoomStartGameM(gameID uint32, table, seat int16, players []RoomStartGameMPlayer) []byte {
+	size := 12 + len(players)*12
+	b := make([]byte, size)
 	wire.WriteLE32(b[0:], gameID)
 	wire.WriteLE16(b[4:], uint16(table))
 	wire.WriteLE16(b[6:], uint16(seat))
-	wire.WriteLE16(b[8:], 2)
+	wire.WriteLE16(b[8:], uint16(len(players)))
 	off := 12
 	for _, p := range players {
 		wire.WriteLE32(b[off+0:], p.UserID)

@@ -21,16 +21,19 @@ type Room struct {
 }
 
 // New creates a new room with the given number of tables.
-func New(numTables, seatsPerTable int) *Room {
+func New(numTables, maxSeatsPerTable int) *Room {
 	r := &Room{
 		tables:     make([]*Table, numTables),
 		players:    make(map[uint32]*Player),
 		nextUserID: 100, // start at 100 to avoid collisions with special IDs
 		nextGameID: 1,
-		numSeats:   seatsPerTable,
+		numSeats:   maxSeatsPerTable,
 	}
 	for i := range r.tables {
-		r.tables[i] = &Table{ID: int16(i)}
+		r.tables[i] = &Table{
+			ID:    int16(i),
+			Seats: make([]*Player, maxSeatsPerTable),
+		}
 	}
 	return r
 }
@@ -120,9 +123,15 @@ func (r *Room) WaitingPlayers() int {
 			continue
 		}
 		p.Table.mu.Lock()
-		both := p.Table.Seats[0] != nil && p.Table.Seats[1] != nil
+		allSeated := true
+		for _, s := range p.Table.Seats {
+			if s == nil {
+				allSeated = false
+				break
+			}
+		}
 		p.Table.mu.Unlock()
-		if !both {
+		if !allSeated {
 			waiting++
 		}
 	}
@@ -143,53 +152,73 @@ func (r *Room) RemovePlayer(p *Player) {
 	log.Printf("[room] RemovePlayer: done (total players: %d)", len(r.players))
 }
 
-// FindSeat finds a table with one player and seats the new player,
+// FindSeat finds a table that needs one more player for the same game,
 // or seats them at an empty table. Returns the table and seat.
 func (r *Room) FindSeat(p *Player) (*Table, int16) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	log.Printf("[room] FindSeat: looking for seat for player %d (%s)...", p.UserID, p.UserName)
+	neededSeats := int(p.GameDef.Seats)
+	log.Printf("[room] FindSeat: looking for seat for player %d (%s), game needs %d seats...",
+		p.UserID, p.UserName, neededSeats)
 
-	// First: find a table with exactly one player (matchmaking)
+	// First: find a table with the most players that still has room (matchmaking priority)
+	bestTable := (*Table)(nil)
+	bestCount := 0
 	for _, t := range r.tables {
 		t.mu.Lock()
-		hasOne := ((t.Seats[0] != nil) != (t.Seats[1] != nil)) && (t.Definition == nil || t.Definition == p.GameDef)
-		if hasOne {
-			var occ int16
-			if t.Seats[0] != nil {
-				occ = 0
-			} else {
-				occ = 1
-			}
-			log.Printf("[room] FindSeat: table %d has one player (seat %d occupied)", t.ID, occ)
+		if t.Definition != nil && t.Definition != p.GameDef {
+			t.mu.Unlock()
+			continue
 		}
-		t.mu.Unlock()
-		if hasOne {
-			// Find the empty seat
-			for seat := int16(0); seat < 2; seat++ {
-				if t.SitDown(p, seat) {
-					log.Printf("[room] FindSeat: matched player %d to table %d seat %d (matchmaking)", p.UserID, t.ID, seat)
-					return t, seat
-				}
+		seated := 0
+		for _, s := range t.Seats {
+			if s != nil {
+				seated++
 			}
+		}
+		hasRoom := seated > 0 && seated < neededSeats && len(t.Seats) >= neededSeats
+		t.mu.Unlock()
+		if hasRoom && seated > bestCount {
+			bestTable = t
+			bestCount = seated
 		}
 	}
+	if bestTable != nil {
+		bestTable.mu.Lock()
+		if len(bestTable.Seats) != neededSeats {
+			old := bestTable.Seats
+			bestTable.Seats = make([]*Player, neededSeats)
+			copy(bestTable.Seats, old[:min(len(old), neededSeats)])
+		}
+		for seat := int16(0); seat < int16(neededSeats); seat++ {
+			if bestTable.sitDownLocked(p, seat) {
+				bestTable.mu.Unlock()
+				log.Printf("[room] FindSeat: matched player %d to table %d seat %d (matchmaking)", p.UserID, bestTable.ID, seat)
+				return bestTable, seat
+			}
+		}
+		bestTable.mu.Unlock()
+	}
 
-	log.Printf("[room] FindSeat: no table with one player, looking for empty table...")
+	log.Printf("[room] FindSeat: no partially filled table, looking for empty table...")
 
 	// Second: find a completely empty table
 	for _, t := range r.tables {
 		t.mu.Lock()
-		matches := t.Definition == nil || t.Definition == p.GameDef
-		t.mu.Unlock()
-		if !matches {
+		if t.Definition != nil && t.Definition != p.GameDef {
+			t.mu.Unlock()
 			continue
 		}
-		if t.SitDown(p, 0) {
+		if len(t.Seats) != neededSeats {
+			t.Seats = make([]*Player, neededSeats)
+		}
+		if t.sitDownLocked(p, 0) {
+			t.mu.Unlock()
 			log.Printf("[room] FindSeat: seated player %d at empty table %d seat 0", p.UserID, t.ID)
 			return t, 0
 		}
+		t.mu.Unlock()
 	}
 
 	log.Printf("[room] FindSeat: NO tables available for player %d!", p.UserID)

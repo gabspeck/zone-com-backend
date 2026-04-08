@@ -210,10 +210,10 @@ func handleSeatRequest(rm *Room, p *Player, msg wire.AppMessage) error {
 		}
 
 		// If both players are seated, start the game
-		if table.BothSeated() {
+		if table.AllSeated() {
 			gameID := rm.NextGameID()
-			log.Printf("[seat] table %d: both seated -> starting game %d (seat0=%d seat1=%d)",
-				table.ID, gameID, table.Seats[0].UserID, table.Seats[1].UserID)
+			log.Printf("[seat] table %d: all %d players seated -> starting game %d",
+				table.ID, len(table.Seats), gameID)
 			table.StartGame(gameID)
 			SendStartGameMessages(table, gameID)
 			log.Printf("[seat] game %d started on table %d", gameID, table.ID)
@@ -313,7 +313,7 @@ func gameMessageName(table *Table, msgType uint32) string {
 }
 
 func SendStartGameMessages(table *Table, gameID uint32) {
-	players := [2]proto.RoomStartGameMPlayer{}
+	players := make([]proto.RoomStartGameMPlayer, len(table.Seats))
 	for i, p := range table.Seats {
 		if p == nil {
 			continue
@@ -325,7 +325,7 @@ func SendStartGameMessages(table *Table, gameID uint32) {
 			Skill:  p.Skill,
 		}
 	}
-	for s := int16(0); s < 2; s++ {
+	for s := int16(0); s < int16(len(table.Seats)); s++ {
 		pl := table.Seats[s]
 		if pl == nil {
 			continue

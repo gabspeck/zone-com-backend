@@ -8,6 +8,7 @@ const (
 	GameKindCheckers   GameKind = "checkers"
 	GameKindReversi    GameKind = "reversi"
 	GameKindBackgammon GameKind = "backgammon"
+	GameKindHearts     GameKind = "hearts"
 )
 
 type GameSession interface {
@@ -44,6 +45,13 @@ var gameRegistry = map[string]*GameDefinition{
 		Service:    "mbckg_zm_***",
 		Seats:      2,
 		NewSession: newBackgammonSession,
+	},
+	"mhrtz_zm_***": {
+		Kind:       GameKindHearts,
+		Name:       "Hearts",
+		Service:    "mhrtz_zm_***",
+		Seats:      4,
+		NewSession: newHeartsSession,
 	},
 }
 

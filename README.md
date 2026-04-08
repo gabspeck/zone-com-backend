@@ -17,6 +17,7 @@ Currently supported game services:
 - Checkers: `mchkr_zm_***`
 - Reversi: `mrvse_zm_***`
 - Backgammon: `mbckg_zm_***`
+- Hearts: `mhrtz_zm_***`
 
 ## Project layout
 
@@ -29,6 +30,7 @@ Currently supported game services:
 - [`internal/checkers`](/home/gabriels/projetos/zone.com/internal/checkers): server-side checkers rules and board state
 - [`internal/reversi`](/home/gabriels/projetos/zone.com/internal/reversi): server-side Reversi rules and state serialization
 - [`internal/backgammon`](/home/gabriels/projetos/zone.com/internal/backgammon): Backgammon shared state, dice encoding, piece positions
+- [`internal/hearts`](/home/gabriels/projetos/zone.com/internal/hearts): Hearts card logic, dealing, trick resolution, scoring
 - [`internal/integration`](/home/gabriels/projetos/zone.com/internal/integration): black-box socket-level integration tests
 - [`internal/server`](/home/gabriels/projetos/zone.com/internal/server): end-to-end connection flow
 
@@ -77,16 +79,18 @@ Implemented:
 - server-side validation of checkers moves
 - server-side validation and state sync for Reversi
 - Backgammon session with MSVC-aligned wire protocol (DICEINFO padding), server-side dice rolling, shared state management, and transaction relay
+- Hearts session with server-authoritative dealing, card passing, trick play, scoring, and shoot-the-moon detection (first 4-player game)
 - chat relay
 - proxy-based opponent disconnect handling
 - rematch handling for Reversi, including ready-state notifications
+- N-player table support (dynamic seat allocation, variable-length StartGameM)
 - suppression of protocol paths that the XP clients treat as corruption (`EndLog` relay, legacy Reversi `FinishMove`, Backgammon `NewMatch`/`TieRoll`/etc.)
 
 Current assumptions:
 
 - tables are auto-managed; there is no full Zone UI/lobby feature set
 - this is focused on the 2-player XP client path, not the broader Zone ecosystem
-- Checkers, Reversi, and Backgammon are implemented; other Millennium services are not
+- Checkers, Reversi, Backgammon, and Hearts are implemented; other Millennium services are not
 
 ## Running
 
