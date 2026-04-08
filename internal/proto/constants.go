@@ -13,6 +13,7 @@ const (
 	LobbySig       uint32 = 0x6C626279 // 'lbby'
 	CheckersSig    uint32 = 0x43484B52 // 'CHKR'
 	ReversiSig     uint32 = 0x72767365 // 'rvse'
+	BackgammonSig  uint32 = 0x474B4342 // 'BCKG'
 	InternalAppSig uint32 = 0x7A737973 // 'zsys'
 )
 
@@ -25,10 +26,11 @@ const (
 
 // Protocol versions
 const (
-	ProxyVersion    uint32 = 1
-	GameRoomVersion uint32 = 17
-	CheckersVersion uint32 = 2
-	ReversiVersion  uint32 = 3
+	ProxyVersion      uint32 = 1
+	GameRoomVersion   uint32 = 17
+	CheckersVersion   uint32 = 2
+	ReversiVersion    uint32 = 3
+	BackgammonVersion uint32 = 3
 )
 
 // Ports
@@ -176,6 +178,35 @@ const (
 	ReversiMsgVoteNewGame   uint32 = 0x10A
 )
 
+// Shared generic game message types.
+const (
+	GameMsgCheckIn           uint32 = 1024
+	GameMsgReplacePlayer     uint32 = 1025
+	GameMsgTableOptions      uint32 = 1026
+	GameMsgGameStateRequest  uint32 = 1027
+	GameMsgGameStateResponse uint32 = 1028
+)
+
+// Backgammon message types.
+const (
+	BackgammonMsgTalk           uint32 = 0x100
+	BackgammonMsgTransaction    uint32 = 0x101
+	BackgammonMsgTurnNotation   uint32 = 0x102
+	BackgammonMsgTimestamp      uint32 = 0x103
+	BackgammonMsgSavedGameState uint32 = 0x104
+	BackgammonMsgRollRequest    uint32 = 0x105
+	BackgammonMsgDiceRoll       uint32 = 0x106
+	BackgammonMsgEndLog         uint32 = 0x107
+	BackgammonMsgNewMatch       uint32 = 0x108
+	BackgammonMsgFirstMove      uint32 = 0x109
+	BackgammonMsgMoveTimeout    uint32 = 0x10A
+	BackgammonMsgEndTurn        uint32 = 0x10B
+	BackgammonMsgEndGame        uint32 = 0x10C
+	BackgammonMsgGoFirstRoll    uint32 = 0x10D
+	BackgammonMsgTieRoll        uint32 = 0x10E
+	BackgammonMsgCheater        uint32 = 0x10F
+)
+
 // Draw vote values
 const (
 	AcceptDraw int16 = 1
@@ -201,7 +232,8 @@ const (
 
 // Max players
 const (
-	MaxPlayersPerTable = 8
-	NumCheckersPlayers = 2
-	NumReversiPlayers  = 2
+	MaxPlayersPerTable   = 8
+	NumCheckersPlayers   = 2
+	NumReversiPlayers    = 2
+	NumBackgammonPlayers = 2
 )

@@ -5,8 +5,9 @@ import "fmt"
 type GameKind string
 
 const (
-	GameKindCheckers GameKind = "checkers"
-	GameKindReversi  GameKind = "reversi"
+	GameKindCheckers   GameKind = "checkers"
+	GameKindReversi    GameKind = "reversi"
+	GameKindBackgammon GameKind = "backgammon"
 )
 
 type GameSession interface {
@@ -36,6 +37,13 @@ var gameRegistry = map[string]*GameDefinition{
 		Service:    "mrvse_zm_***",
 		Seats:      2,
 		NewSession: newReversiSession,
+	},
+	"mbckg_zm_***": {
+		Kind:       GameKindBackgammon,
+		Name:       "Backgammon",
+		Service:    "mbckg_zm_***",
+		Seats:      2,
+		NewSession: newBackgammonSession,
 	},
 }
 
